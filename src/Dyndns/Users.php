@@ -22,7 +22,7 @@ class Users
             foreach ($lines as $line) {
                 if (preg_match("/^(.*?):(.*)/", $line, $matches)) {
                     if (strtolower($matches[1]) == strtolower($user)) {
-                        if (crypt($password, $matches[2]) === $matches[2]) {
+                        if (password_verify($password, $matches[2])) {
                             $this->debug('Login successful for user ' . $user);
                             return true;
                         } else {

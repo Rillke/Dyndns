@@ -45,10 +45,7 @@ class Server
             'debugFile' => 'dyndns.log',    // Debug file
             'debug' => false,               // Enable debugging
 
-            'bind.server' => false,
-            'bind.zone' => '',
-            'bind.ttl' => 300,
-            'bind.key' => '',
+            'tinydns.updateDir' => '/tmp/ddns_updates',
         );
     }
 
@@ -81,6 +78,7 @@ class Server
 
         $this->updateHosts();
 
+        sleep(5);
         // Return "good" code as everything seems to be ok now
         $this->returnCode('good');
 

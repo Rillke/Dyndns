@@ -134,42 +134,17 @@ class Hosts
      */
     private function updateBind()
     {
-        $server = $this->getConfig('bind.server');
-        $zone = $this->getConfig('bind.zone');
-        $ttl = $this->getConfig('bind.ttl') * 1;
-        $keyfile = $this->getConfig('bind.keyfile');
+        $updatedir = $this->getConfig('tinydns.updateDir');
 
         // sanitiy checks
-        if (! Helper::checkValidHost($server)) {
-            $this->debug('ERROR: Invalid bind.server config value');
-            return false;
-        }
-        if (! Helper::checkValidHost($zone)) {
-            $this->debug('ERROR: Invalid bind.zone config value');
-            return false;
-        }
-        if (! is_int($ttl)) {
-            $this->debug('Invalid bind.ttl config value. Setting to default 300.');
-            $ttl = 300;
-        }
-        if ($ttl < 60) {
-            $this->debug('bind.ttl is too low. Setting to default 300.');
-            $ttl = 300;
-        }
-        if (! is_readable($keyfile)) {
-            $this->debug('ERROR: Invalid bind.keyfile config value');
-            return false;
+        if (! is_dir($updatedir)) {
+            $this->debug('WARNING: Creating DNS-Update directory at ' . $updatedir);
+            if (! mkdir($updatedir)) {
+               $this->debug('ERROR: Can\'t create DNS-Update directory for pickup by CRON.');
+               return false;
+            }
         }
 
-        // create temp file with nsupdate commands
-        $tempfile = tempnam(sys_get_temp_dir(), 'Dyndns');
-        $fh = @fopen($tempfile, 'w');
-        if (! $fh) {
-            $this->debug('ERROR: Could not open temporary file');
-            return false;
-        }
-        fwrite($fh, "server $server\n");
-        fwrite($fh, "zone $zone\n");
         foreach ($this->updates as $host => $ip) {
            $recType = Helper::getRecordType($ip);
            
@@ -180,19 +155,11 @@ class Hosts
            if (! Helper::hasIPChanged($host, $ip)) {
 	      continue;
            }
-           
-           fwrite($fh, "update delete $host $recType\n");
-           fwrite($fh, "update add $host $ttl $recType $ip\n");
-        }
-        fwrite($fh, "send\n");
-        fclose($fh);
 
-        // Execute nsupdate
-        $result = exec('/usr/bin/nsupdate -k ' . escapeshellarg($keyfile) . ' ' . $tempfile . ' 2>&1');
-        unlink($tempfile);
-        if ($result != '') {
-            $this->debug('ERROR: nsupdate returns: ' . $result);
-            return false;
+           $target =  "$updatedir/$host";
+           if (file_put_contents($target, $ip, LOCK_EX) !== strlen($ip)) {
+              return false;
+           }
         }
 
         return true;
