@@ -1,6 +1,6 @@
 # Dyndns: a simple DynDNS server in PHP
 
-This script takes the same parameters as the original dyndns.org server does. It can update a BIND DNS server via `nsupdate`.
+This script takes the same parameters as the original dyndns.org server does. It can update a Tiny DNS server via [Dyndns-config](https://github.com/Rillke/Dyndns-config).
 
 As it uses the same syntax as the original DynDNS.org servers do, a dynamic DNS server equipped with this script can be used with DynDNS compatible clients without having to modify anything on the client side.
 
@@ -9,49 +9,14 @@ As it uses the same syntax as the original DynDNS.org servers do, a dynamic DNS 
 
 This script handles DNS updates on the url
 
-    http://yourdomain.tld/?hostname=<domain>&myip=<ipaddr>
+    https://yourdomain.tld/?hostname=<domain>&myip=<ipaddr>
 
 For security HTTP basic auth is used. You can create multiple users and assign host names for each user.
 
 
-### Installation
+### DNS-Server Installation
 
-To be able to dynamically update the BIND DNS server, a DNS key must be generated with the command:
-
-    ddns-confgen
-
-This command outputs instructions for your BIND installation. The generated key has to be added to the named.conf.local:
-
-    key "ddns-key" {
-        algorithm hmac-sha256;
-        secret "bvZ....K5A==";
-    };
-
-and saved to a file which is referenced in index.php as "bind.keyfile". In the "zone" entry, you have to add an "update-policy":
-
-    zone "dyndns.example.com" {
-        type master;
-        file "db.dyndns.example.com";
-        ...
-        update-policy {
-            grant ddns-key zonesub ANY;
-        }
-    }
-
-In this case, the zone is also called "dyndns.example.com". The (initial) db.dyndns.example.com file (located in BIND's cache directory) looks like this:
-
-    $TTL 1h
-    @ IN SOA dyndns.example.com. root.example.com. (
-            2007111501      ; serial
-            1h              ; refresh
-            15m             ; retry
-            7d              ; expiration
-            1h              ; minimum
-            )  
-            NS <your dns server>
-
-Remember to change access rights so BIND is able to write to this file. On Ubuntu the zone need to be in /var/lib/bind due to AppArmor.
-
+C.f. https://github.com/Rillke/Dyndns-config
 
 ### PHP script configuration
 
@@ -95,10 +60,7 @@ $dyndns
   ->setConfig('userFile', __DIR__ . '/../conf/dyndns.user')   // user database
   ->setConfig('debug', true)  // enable debugging
   ->setConfig('debugFile', '/tmp/dyndns.log') // debug file
-  ->setConfig('bind.keyfile', __DIR__ . '/../conf/dyn.example.com.key') // secret key for BIND nsupdate ("<keyname>:<secret>")
-  ->setConfig('bind.server', 'localhost') // address of the BIND server
-  ->setConfig('bind.zone', 'dyndns.example.com') // BIND zone for the updates
-  ->setConfig('bind.ttl', '300') // TTL for DNS entries
+  ->setConfig('tinydns.updateDir','/tmp/ddns_updates') // directory containing scheduled DNS updates
 ;
 
 $dyndns->init();
@@ -109,7 +71,7 @@ $dyndns->init();
 
 Authentication in URL:
 
-    http://username:password@yourdomain.tld/?hostname=yourhostname&myip=ipaddress
+    https://username:password@yourdomain.tld/?hostname=yourhostname&myip=ipaddress
 
 
 Raw HTTP GET Request:
